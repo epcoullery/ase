@@ -1,0 +1,6 @@
+*.pyc
+database.db
+common/local_settings.py
+.project
+.pydevproject
+.settings

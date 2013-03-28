@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Attribution des cours{% endblock %}
+{% block extrahead %}{% endblock %}
+{% block content %}
+<script type="text/javascript">
+$(document).ready(function() {
+    
+    $("#selector").change(function(){
+       var v = $("#selector option:selected");
+       //Définit l'url du formulaire
+       var url = "/contents/"+v.val();
+       $("#myform").attr('action', url);
+       //alert($("#myform").attr('action'));
+       $("#myform").submit();
+       return false;
+    })
+});
+
+</script>
+<h1>Liste des cours par contenu</h1>
+<form name="myform" id="myform" action="" method="POST">{% csrf_token %}
+<p><select name="selector" id="selector" >
+{% for content in contents %}
+<option value="{{ content.id }}" 
+{% ifequal content.id content_selected.id %}
+selected
+{% endifequal %}
+>{{ content.code }} - {{content.name}}</option>
+{% endfor %}
+</select>
+</p>
+</form>
+<table id="courses_tab">
+<tr>
+    <th>Id</th>
+    <th width="50px">Careum</th>
+    <th>Libellé du cours</th>
+    <th align="right">Pér. prof.</th>
+    <th width="70px">Classe</th>
+    
+</tr>
+{% for course in courses %}
+    <tr id="course_{{ course.id }}">
+        <td>{{ course.id }}</td>
+        <td>{{ course.content.code }}</td>
+        <td>{{ course.content.name|truncatechars:40 }}</td>
+        <td align="right">{{ course.teacher_period }}</td>
+        <td><a href="/promotions/{{course.promotion.id }}">{{ course.promotion.name }}</a></td>
+	    <td><select name="teacher_selected" id="teacher_selected_{{ forloop.counter }}" class="teacher_selecting" onChange="teacher_select_change(this)" >
+	    <option value="{{ course.id }}_0"
+	    {% ifequal teacher.id course.teacher.id %}selected{% endifequal %}>----</option>  
+	    {% for teacher in teachers %}
+	    <option value="{{ course.id }}_{{ teacher.id }}"
+	    {% ifequal teacher.id course.teacher.id %}selected{% endifequal %}
+	    >{{ teacher.full_name }}</option>
+	    {% endfor %}	    
+	    </select></td>
+    </tr>
+{% endfor %}
+<tr>
+    <td  colspan="3">Total :</td>
+    <td align="right">{{student_total}}</td>
+</tr>
+</table>
+
+<!-- Tableau de contrôle -->
+<table id="control_tab" >
+<tr>
+    <th>Nom</th>
+    <th align="left">Ens.</th>
+    <th align="right">Mandats</th>
+    <th align="right">Suivis</th>
+    <th align="right">Actu</th>
+    <th align="right">Total</th>
+    <th >Ecart</th>
+</tr>
+{% for teacher in teachers %}
+<tr id="teacher_{{teacher.id}}">
+    <td align="left"><a href="/teachers/{{teacher.id}}">{{ teacher.full_name }}</a></td>
+    <td align="right">{{ teacher.total.teaching }}</td>
+    <td align="right">{{ teacher.total.mission }}</td>
+    <td align="right">{{ teacher.total.supervision }}</td>
+    <td align="right">{{ teacher.total.others }}</td>
+    <td align="right">{{ teacher.total.total }}</td>
+    <td align="right" width="50px">{{ teacher.total.gap }}</td>
+</tr>
+{% endfor %}
+</table>
+
+{% endblock %}

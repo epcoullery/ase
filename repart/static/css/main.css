@@ -1,0 +1,23 @@
+body {
+    font:sans-serif;
+    font-size:small;
+}
+
+#control_tab {
+    position:fixed;
+    top:150px;
+    margin-left:700px;
+}
+
+#content h1 {
+    margin-bottom:20px;
+}
+
+#modlist ol li {
+    font-size:150%;
+    font-weight:bold;
+}
+
+.teacher_selecting {
+    width:140px;
+}
