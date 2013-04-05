@@ -50,7 +50,7 @@ MEDIA_URL = ''
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
-STATIC_ROOT = os.path.join(PROJECT_PATH, 'static')
+STATIC_ROOT = os.path.join(PROJECT_PATH, 'repart/static')
 
 # URL prefix for static files.
 STATIC_URL = '/static/'
@@ -73,6 +73,14 @@ ROOT_URLCONF = 'common.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'common.wsgi.application'
+
+TEMPLATE_DIRS = (
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+    os.path.join(PROJECT_PATH, 'repart/templates'),
+    #'/home/alzo/workspace/ase/repart/templates',
+)
 
 INSTALLED_APPS = (
     'django.contrib.auth',
