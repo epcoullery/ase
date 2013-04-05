@@ -91,7 +91,7 @@ def teachers_charges(request, pk):
     """
     if request.method == 'POST':
         teacher = get_object_or_404(Teacher, pk=pk)
-
+        locale.setlocale(locale.LC_ALL,'')
         response = HttpResponse(mimetype='application/pdf')
         response['Content-Disposition'] = 'attachment; filename=somefilename.pdf'
         style_normal = PS(name = 'CORPS', fontName='Helvetica', fontSize=10, alignment = TA_LEFT)
@@ -117,6 +117,8 @@ def teachers_charges(request, pk):
             libel = u'    -%s ( %d pér.)' % (mission.content.name, mission.teacher_period)
             tab.append([libel, ''])
         tot_super = Supervision.objects.filter(teacher_id=teacher.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+        if tot_super is None:
+            tot_super = 0
         tab.append([u'Suivis expérientiels (FE + MP)', u'%d pér.' % (tot_super)])
         tab.append([u'Autres tâches', u'%d pér.' % (total['others'])])
         tab.append([u'Total', u'%d pér.' % (total['total']), u'%.1f EPT' % (total['ept']/100)])
@@ -202,6 +204,8 @@ def generate(request):
 def genall(request):
     """
     Génère tous les cours appliqués
+    Afin d'éviter toute erreur de manip, cette commande n'est pas insérée dans le menu;
+    elle doit être tapée directement dans l'url
     """
     promotions = Promotion.objects.all()
     #print promotions
