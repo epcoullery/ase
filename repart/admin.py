@@ -3,7 +3,7 @@ from django import forms
 from django.contrib import admin
 
 from repart.models import (Teacher, Promotion, Content, Formation, TheoricStudiesPlan, AppliedStudiesPlan,
-                           AdminContent, AdminJob)
+                           AdminContent, AdminJob, Supervision)
 
 class AdminJobInLines(admin.TabularInline):
     model = AdminJob
@@ -25,3 +25,4 @@ admin.site.register(TheoricStudiesPlan)
 admin.site.register(AdminContent)
 admin.site.register(AppliedStudiesPlan)
 admin.site.register(AdminJob)
+admin.site.register(Supervision)
