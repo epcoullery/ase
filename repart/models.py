@@ -206,7 +206,7 @@ class Supervision(models.Model):
     teacher_period = models.IntegerField(default=0, verbose_name='Pér. enseignant')
 
     def __unicode__(self):
-        return self.teacher.full_name + " : " + self.promotion.name
+        return self.teacher.full_name() + " : " + self.promotion.name
 
     def generate(self):
         Supervision.objects.all().delete()
