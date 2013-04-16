@@ -158,6 +158,7 @@ def supervision(request):
     Répartit les suivis expérientiels entre les profs de la
     classe en fonction du pourcentage d'enseignement dans la classe
     """
+    Supervision.objects.all().delete()
     promotions = Promotion.objects.all()
     for promotion in promotions:
         courses = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id)
