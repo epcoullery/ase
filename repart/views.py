@@ -70,7 +70,7 @@ def contents(request,pk):
     else:
         content_selected = get_object_or_404(Content,pk=pk)
     contents = Content.objects.all()
-    contents.query.group_by=['code']
+    #contents.query.group_by=['code']
     teachers = Teacher.objects.all()
     data['contents'] = contents
     data['teachers'] = teachers
