@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
-import locale
+#import locale
 import math
 from datetime import date
 
@@ -8,7 +8,7 @@ from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect
-
+from django.utils.dateformat import format
 from reportlab.platypus import Paragraph, Spacer, PageBreak, Table, TableStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -91,7 +91,6 @@ def teachers_charges(request, pk):
     """
     if request.method == 'POST':
         teacher = get_object_or_404(Teacher, pk=pk)
-        locale.setlocale(locale.LC_ALL,'')
         response = HttpResponse(mimetype='application/pdf')
         response['Content-Disposition'] = 'attachment; filename=somefilename.pdf'
         style_normal = PS(name = 'CORPS', fontName='Helvetica', fontSize=10, alignment = TA_LEFT)
@@ -105,7 +104,7 @@ def teachers_charges(request, pk):
         story.append(Spacer(1, 3*cm))
         story.append(Paragraph(teacher.full_name(), style_adress))
         story.append(Spacer(1, 3*cm))
-        story.append(Paragraph(u'La Chaux-de-Fonds, le ' + date.today().strftime(u"%d %B %Y").decode('utf-8'), style_normal))
+        story.append(Paragraph(u'La Chaux-de-Fonds, le ' + format(date.today(), 'd F Y'), style_normal))
         story.append(Spacer(1, 3*cm))
         story.append(Paragraph(u'Charge d\'enseignement pour l\'année scolaire 2013-2014', style_bold))
         story.append(Spacer(1, 0.5*cm))
