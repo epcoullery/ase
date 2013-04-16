@@ -19,16 +19,7 @@ class Formation(models.Model):
     def __unicode__(self):
         return self.name
 
-    def save(self):
-        if self.name in ['1FE', '2FE', '3FE']:
-            self.supervision_period = 5
-        elif self.name in ['1MP', '2MP', '3MP', '4MP']:
-            self.supervision_period = 10
-        else:
-            self.supervision_period = 0
-        super(Formation, self).save()
-
-
+    
 class Promotion(models.Model):
     name = models.CharField(max_length=10, verbose_name='Nom')
     formation = models.ForeignKey(Formation)
