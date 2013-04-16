@@ -218,6 +218,9 @@ class Supervision(models.Model):
                 s.teacher = teacher
                 s.promotion = promotion
                 s.save()
+                
+    class Meta:
+        ordering=['teacher__last_name', 'promotion__name']
 
 
 class MyDocTemplate(SimpleDocTemplate):
