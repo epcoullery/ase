@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls.defaults import patterns, include, url
 from django.contrib import admin
 from django.views.generic import RedirectView
 from repart import views
@@ -13,11 +13,15 @@ urlpatterns = patterns('',
     url(r'^teachers/(?P<pk>\d+)?', views.teachers),
     url(r'^contents/(?P<pk>\d+)?', views.contents),
     url(r'^missions/$', views.missions),
-    url(r'^generate', views.generate),
-    url(r'^genall', views.genall),
+    url(r'^generate_cours/$', views.generate),
+    url(r'^genall/$', views.genall),
     url(r'^remaind', views.remaind),
-    url(r'^supervision/$', views.supervision),
-
+    url(r'^generate_supervision/$', views.supervision),
+    url(r'^supervision/(?P<pk>.+)?', views.supervision_by_promotion),
+    url(r'^global_supervision/$', views.global_supervision),
+    
     # Appel AJAX
     url(r'^course/(?P<pk_course>\d+)/(?P<pk_teacher>\d+)$', views.update_courses),
+    url(r'^supervision_add/(?P<pk>\d+)', views.supervision_add),
+    url(r'^supervision_minus/(?P<pk>\d+)', views.supervision_minus),
 )

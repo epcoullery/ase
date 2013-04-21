@@ -153,33 +153,7 @@ def teachers_charges(request, pk):
         return response
 
 
-def supervision(request):
-    """
-    Répartit les suivis expérientiels entre les profs de la
-    classe en fonction du pourcentage d'enseignement dans la classe
-    """
-    Supervision.objects.all().delete()
-    promotions = Promotion.objects.all()
-    for promotion in promotions:
-        courses = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id)
-        teachers = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id).values('teacher_id').exclude(teacher_id = None)
-        teachers.query.group_by = ['teacher_id']
-        promotion_total_period = courses.aggregate(Sum('teacher_period'))['teacher_period__sum']
-        print promotion_total_period
-        for t in teachers:
-            teacher = get_object_or_404(Teacher,pk=t['teacher_id'])
-            teacher_total_period = courses.filter(teacher_id=teacher.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
-            students_to_supervise = float(teacher_total_period) / float(promotion_total_period) * promotion.student_number
-            supervision_period = promotion.formation.supervision_period * math.floor(students_to_supervise+0.5)
-            #Enregistrement dans le fichier
-            s = Supervision.objects.filter(promotion_id=promotion.id, teacher_id=teacher.id)
-            if len(s) ==1:
-                s[0].teacher_period = supervision_period
-                s[0].save()
-            else:
-                ss = Supervision(teacher_id=teacher.id, promotion_id=promotion.id, teacher_period=supervision_period)
-                ss.save()
-    return HttpResponseRedirect('/promotions/'+str(promotion.id))
+
 
 def generate(request):
     """
@@ -233,7 +207,105 @@ def remaind(request):
                                             'teachers': teachers,
                                             'courses_number': len(c)})
 
-"""
+
+def repart_by_formation(request):
+    courses = AppliedStudiesPlan.objects.filter(promotion__formation__name = '2FE', teacher__code = 'SBD')
+    print courses
+    
+    return 
+
+
+def supervision(request):
+    """
+    Répartit les suivis expérientiels entre les profs de la
+    classe en fonction du pourcentage d'enseignement dans la classe
+    """
+    Supervision.objects.all().delete()
+    promotions = Promotion.objects.all()
+    for promotion in promotions:
+        courses = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id)
+        teachers = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id).values('teacher_id').exclude(teacher_id = None).exclude(teacher__able_to_supervision= False)
+        teachers.query.group_by = ['teacher_id']
+        promotion_total_period = courses.aggregate(Sum('teacher_period'))['teacher_period__sum']
+        for t in teachers:
+            teacher = get_object_or_404(Teacher,pk=t['teacher_id'])
+            teacher_total_period = courses.filter(teacher_id=teacher.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+            students_to_supervise = float(teacher_total_period) / float(promotion_total_period) * promotion.student_number
+            students_to_supervise = math.floor(students_to_supervise + 0.5) 
+            supervision_period = promotion.formation.supervision_period * students_to_supervise
+            #Enregistrement dans le fichier
+            s = Supervision.objects.filter(promotion_id=promotion.id, teacher_id=teacher.id)
+            if len(s) ==1:
+                s[0].teacher_period = supervision_period
+                s[0].students_number = students_to_supervise
+                s[0].save()
+            else:
+                ss = Supervision(teacher_id=teacher.id, promotion_id=promotion.id, teacher_period=supervision_period, students_number=students_to_supervise)
+                ss.save()
+    return HttpResponseRedirect('/promotions/'+str(promotion.id))    
+
+def global_supervision(request):
+    """
+    Tableau style Excel pour gérer la répartition des suivis expérientiels    
+    """
+    
+    teachers = Teacher.objects.all()
+    promotions = Promotion.objects.all()
+    #supervisions = Supervision.objects.all()
+    tab=[]
+    #Titre des colonnes
+    row_title_col=[]
+    row_title_col.append("Enseignants")
+    row_students_number=[]
+    row_students_number.append("Effectifs")
+    row_current_total=[]
+    row_current_total.append('Suivis attribués')
+    
+    for promotion in promotions:
+        row_title_col.append(promotion.short_name)
+        row_students_number.append(promotion.student_number)
+        row_current_total.append(0)
+        
+    #tab.append(row_title_col)
+    #tab.append(row_students_number)
+        
+    for teacher in teachers:
+        t=[]
+        t.append(teacher.full_name())
+        for promotion in promotions:
+            try:
+                supervision = Supervision.objects.get(teacher_id=teacher.id, promotion_id=promotion.id)
+                if supervision.students_number == 0:
+                    t.append(0)
+                else:
+                    t.append(supervision.students_number)
+            except:
+                t.append(0)
+            row_current_total[row_title_col.index(promotion.short_name)] += int(t[-1])
+            
+        tab.append(t)
+    #tab.append(row_current_total)    
+    return render(request, 'global_supervision.html', {'tab':tab, 'promotions':Promotion.objects.all(), 'current_totals':row_current_total})
+
+def supervision_by_promotion(request, pk):
+    """
+    Le paramètre est optionnel. S'il est absent, la première valeur
+    de la table est utilisée.
+    """
+    data ={}
+    data['promotions'] = Promotion.objects.all()
+    if pk is None:
+        promotion_selected = data['promotions'][0]
+    else:
+        promotion_selected = get_object_or_404(Promotion, pk=pk)
+    data['teachers'] = Teacher.objects.all()
+    data['promotion_selected'] = promotion_selected
+    data['supervisions'] = Supervision.objects.filter(promotion_id = promotion_selected.id)
+    
+    return render(request, 'supervision_promotions.html', data)
+
+    
+"""    
 Appels AJAX  ************************************************************
 """
 def update_courses(request, pk_course, pk_teacher):
@@ -272,3 +344,53 @@ def update_courses(request, pk_course, pk_teacher):
         myList.append(getCharge(Teacher.objects.get(pk=pk_teacher)))
         #myList.append(Teacher.objects.get(pk=pk_teacher))
     return HttpResponse(json.dumps(myList), content_type="application/json")
+
+
+def supervision_add(request, pk):
+    supervision = get_object_or_404(Supervision, pk=pk)
+    supervision.students_number += 1
+    supervision.teacher_period += supervision.promotion.formation.supervision_period
+    supervision.save()
+    total = supervision.teacher.total()
+    myList = []
+    result = {'result':'OK',
+            'id': supervision.teacher_id,
+            'name':supervision.teacher.full_name(),
+            'teaching': total['teaching'],
+            'mission': total['mission'],
+            'supervision': total['supervision'],
+            'others': total['others'],
+            'total': total['total'],
+            'ept': total['ept'],
+            'gap': total['gap'],
+            'new_students_number': supervision.students_number}
+    myList.append(result)
+    return HttpResponse(json.dumps(myList), content_type="application(json")
+
+
+def supervision_minus(request, pk):
+    supervision = get_object_or_404(Supervision, pk=pk)
+    supervision.students_number -= 1
+    supervision.teacher_period -= supervision.promotion.formation.supervision_period
+    if supervision.students_number < 0:
+        supervision.students_number = 0
+    if supervision.teacher_period < 0:
+        supervision.teacher_period = 0
+    supervision.save()
+    total = supervision.teacher.total()
+    myList=[]
+    result = {'result':'OK',
+            'id': supervision.teacher_id,
+            'name':supervision.teacher.full_name(),
+            'teaching': total['teaching'],
+            'mission': total['mission'],
+            'supervision': total['supervision'],
+            'others': total['others'],
+            'total': total['total'],
+            'ept': total['ept'],
+            'gap': total['gap'],
+            'new_students_number': supervision.students_number}
+    myList.append(result)
+    return HttpResponse(json.dumps(myList), content_type="application(json")  
+
+  

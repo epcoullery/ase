@@ -32,6 +32,10 @@ class Promotion(models.Model):
     def __unicode__(self):
         return self.name
 
+    def short_name(self):
+        foo = self.name.replace('ASE', '')
+        return foo.replace(' ', '')
+    
     def save(self):
         if self.pk is None:
             super(Promotion, self).save()
@@ -71,6 +75,8 @@ class Teacher(models.Model):
     first_name = models.CharField(max_length=40, blank=True, null=True, verbose_name='Prénom')
     last_name = models.CharField(max_length=40, blank=True, null=True, verbose_name='Nom')
     activity_rate = models.FloatField(verbose_name='Taux d\'activité')
+    extern = models.BooleanField(default=False, verbose_name='Ens. externe')
+    able_to_supervision = models.BooleanField(default=True, verbose_name='OK pour suivis expérientiels')
 
     class Meta:
         verbose_name = "Enseignant"
@@ -204,10 +210,12 @@ class Supervision(models.Model):
     teacher = models.ForeignKey(Teacher, verbose_name='Enseignant-e')
     promotion = models.ForeignKey(Promotion, verbose_name='Classe')
     teacher_period = models.IntegerField(default=0, verbose_name='Pér. enseignant')
+    students_number = models.IntegerField(default=0, verbose_name="Nbre de suivis")
 
     def __unicode__(self):
-        return self.teacher.full_name() + " : " + self.promotion.name
+        return self.teacher.full_name() + " : " + self.promotion.name + " : " + str(self.students_number)
 
+    """
     def generate(self):
         Supervision.objects.all().delete()
         teachers = Teacher.objects.all()
@@ -218,6 +226,7 @@ class Supervision(models.Model):
                 s.teacher = teacher
                 s.promotion = promotion
                 s.save()
+    """
                 
     class Meta:
         ordering=['teacher__last_name', 'promotion__name']

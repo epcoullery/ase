@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Gestion des suivis expérientiels{% endblock %}
+
+{% block content %}
+<table>
+    <tr>
+    <td>Classes</td>
+    {% for promotion in promotions %}
+    <td><a href="/supervision/{{promotion.id}}">{{promotion.short_name}}</a>
+    </td>
+    {%endfor %}
+    </tr>
+    <tr>
+    <td>Effectifs></td>
+    {% for promotion in promotions %}
+    <td class="{{promotion.short_name}} number">{{promotion.student_number}}
+    </td>
+    {%endfor %}
+    </tr>
+    
+    <tr>
+    {% for number in numbers %}
+    <td>{{number}}</td>
+    {% endfor %}
+    </tr>
+    
+    {% for row in tab %}
+    <tr>
+    {% for col in row %}
+    <td>{% if col != 0 %}{{col}}{% endif%}</td>
+    {% endfor %}
+    </tr>
+    {% endfor %}
+    <tr>
+    {% for total in current_totals %}
+    <td class="">{{total}}</td>
+    {% endfor %}
+    </tr>
+</table>
+
+{% endblock %}

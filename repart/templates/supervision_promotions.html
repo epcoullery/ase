@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Gestion des suivis expérientiels{% endblock %}
+
+{% block content %}
+<script type="text/javascript">
+$(document).ready(function() {
+    
+	
+    $("#selector").change(function(){
+       var v = $("#selector option:selected");
+       var url = "/supervision/"+v.val();
+       $("#myform").attr('action', url);
+       $("#myform").submit();
+       return false;
+    })
+    
+   totalSupervision();
+   
+	   
+   $("#tab_info tr").each(function(){
+	  var elem = $(this).find('td:eq(1)').text()
+	  if (elem == '0') {
+		  alert($(this).find('td:eq(0)').text());
+		   $(this).find('td:eq(3)').attr("disabled", "disabled");
+	  }
+	  return false;
+   });
+   
+});
+
+function totalSupervision() {
+    var totalR=0; 
+	$("#tab_info tr td").each(function(){
+		   if($(this).attr('class') == 'tot_prof') {
+	           totalR = totalR + Number($(this).text())
+	       }
+	});
+	$("#current_total_students").text(totalR);
+	if ( $("#students_number").text() == totalR ) {
+		$("#current_total_students").removeClass("cur_tot_not_ok");
+		$("#current_total_students").addClass("cur_tot_ok");
+		}
+	else {
+		$("#current_total_students").removeClass("cur_tot_ok");
+	    $("#current_total_students").addClass("cur_tot_not_ok");
+	}
+	return false;
+}
+
+
+function supervision(el, action) {
+   //Appel JSON pour mettre à jour la base données
+   var elem = el.id.split('_');
+   //alert (elem[0]);
+    $.getJSON('/supervision_' + elem[1] + '/' + elem[0], function(data) {
+        if (data.length > 0) {
+            $.each(data, function(index) {
+                if(this.result == 'OK') {
+                    var json = this;
+                    $("#control_tab tr").each(function() {
+                        if( $(this).attr('id') == 'teacher_'+json.id) {
+                            $(this).find('td:eq(1)').text(json.teaching);
+                            $(this).find('td:eq(2)').text(json.mission);
+                            $(this).find('td:eq(3)').text(json.supervision);
+                            $(this).find('td:eq(4)').text(json.others);
+                            $(this).find('td:eq(5)').text(json.total);
+                            $(this).find('td:eq(6)').text(json.gap);
+                        }
+                    });
+                    //Mettre à jour l'affichage du prof
+                    $("#"+elem[0]+"_tot_prof").text(json.new_students_number)
+                    //Réactualise le total
+                    totalSupervision();
+                }
+                else {
+                    alert('Une erreur s\'est produite au chargement des données AJAX');
+                }
+            });
+        }
+    });
+    return false;
+}
+
+</script>
+<h1>Liste des cours par classe</h1>
+<!-- Sélecteur principal -->
+<form name="myform" id="myform" action="" method="POST">{% csrf_token %}
+<p>
+<select name="selector" id="selector" >
+{% for promotion in promotions %}
+<option value="{{ promotion.id }}" 
+{% ifequal promotion.id promotion_selected.id %}
+selected
+{% endifequal %}
+>{{ promotion.name }}</option>
+{% endfor %}
+</select>
+</p>
+</form>
+
+<table id="tab_info">
+<tr>
+<td>Effectif de la classe:</td>
+<td align="right" width="50px" id="students_number">{{promotion_selected.student_number}}</td>
+<td align="center" width="100px">&nbsp;</td>
+</tr>
+{% for supervision in supervisions %}
+<tr id="{{supervision.id}}">
+<td>{{supervision.teacher.full_name}}</td>
+<td align="right" width="50px" id="{{supervision.id}}_tot_prof" class="tot_prof">{{supervision.students_number}}</td>
+<td align="center" width="100px"><button id="{{supervision.id}}_add" onclick="supervision(this,'add')">+</button>&nbsp;&nbsp;
+<button id="{{supervision.id}}_minus" class="but_minus" onclick="supervision(this, 'minus')">-</button>
+</tr>
+{% endfor %}
+<tr>
+<td>Suivis répartis:</td>
+<td align="right" width="50px" id="current_total_students"></td>
+<td align="center" width="100px">&nbsp;</td>
+</tr>
+</table>
+
+<!-- Tableau de contrôle -->
+<table id="control_tab" >
+<tr>
+    <th>Nom</th>
+    <th align="left">Ens.</th>
+    <th align="right">Mandats</th>
+    <th align="right">Suivis</th>
+    <th align="right">Actu</th>
+    <th align="right">Total</th>
+    <th >Ecart</th>
+</tr>
+{% for teacher in teachers %}
+<tr id="teacher_{{teacher.id}}">
+    <td align="left"><a href="/teachers/{{teacher.id}}">{{ teacher.full_name }}</a></td>
+    <td align="right">{{ teacher.total.teaching }}</td>
+    <td align="right">{{ teacher.total.mission }}</td>
+    <td align="right">{{ teacher.total.supervision }}</td>
+    <td align="right">{{ teacher.total.others }}</td>
+    <td align="right">{{ teacher.total.total }}</td>
+    <td align="right" width="50px">{{ teacher.total.gap }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endblock %}

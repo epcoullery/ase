@@ -1,5 +1,5 @@
 body {
-    font:sans-serif;
+    font-family:sans-serif;
     font-size:small;
 }
 
@@ -20,4 +20,14 @@ body {
 
 .teacher_selecting {
     width:140px;
+}
+
+.cur_tot_ok {
+	font-weight: bold;
+	color:green;
+}
+
+.cur_tot_not_ok {
+	font-weight: bold;
+    color:red;
 }
