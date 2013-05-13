@@ -373,7 +373,45 @@ def export_controls(request):
     return response
 
 
+def export_studiesplan(request):
+    """
+    Exporte le plan d'étude appliqué
+    """
+    courses = AppliedStudiesPlan.objects.all()
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="export_cours.csv"'
 
+    writer = UnicodeWriter(response)
+    
+    writer.writerow(['Id', u'Classe', u'Prof', u'Code_Mat', u'Matière', u'H_Prof', u'H_Elève'])
+    for cours in courses:
+        if cours.promotion is None:
+            promotion = ''
+        else:
+            promotion = cours.promotion.name
+        
+        if cours.content is None:
+            content = ''
+        else:
+            content = cours.content.name
+            
+        if cours.content is None:
+            content_code = ''
+        else:
+            content_code = cours.content.code
+                
+        if cours.teacher is None:
+            teacher_code = ''
+        else:
+            teacher_code = cours.teacher.code    
+            
+        writer.writerow(['%d' % cours.id, promotion, teacher_code, content_code, content, '%d' % cours.teacher_period, '%d' % cours.student_period])
+        
+    return response
+    
+    
+    
+    
 """    
 Appels AJAX  ************************************************************
 """

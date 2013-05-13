@@ -21,6 +21,8 @@ urlpatterns = patterns('',
     url(r'^global_supervision/$', views.global_supervision),
     url(r'^export_teachers/$', views.export_teachers),
     url(r'^export_controls/$', views.export_controls),
+    url(r'^export_studiesplan/$', views.export_studiesplan),
+    
     # Appel AJAX
     url(r'^course/(?P<pk_course>\d+)/(?P<pk_teacher>\d+)$', views.update_courses),
     url(r'^supervision_add/(?P<pk>\d+)', views.supervision_add),
