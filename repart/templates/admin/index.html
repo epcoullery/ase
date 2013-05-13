@@ -1,7 +1,12 @@
 {% extends "admin/base_site.html" %}
 {% load i18n admin_static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/dashboard.css" %}" />{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/dashboard.css" %}" />
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" />
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+
+{% endblock %}
 
 {% block coltype %}colMS{% endblock %}
 
@@ -11,7 +16,38 @@
 
 {% block content %}
 <div id="content-main">
-
+<div id="dialog-confirm" title="Confirmation de la suppression" style="display:none;">
+    <p>
+        <span class="ui-icon ui-icon-alert" style="float:left; margin:0 7px 20px 0;"></span>
+        Cette action va effacer les suivis actuels pour les recalculer. Etes-vous d'accord ?
+    </p>
+</div>
+ <script>
+$(function() {
+	$( "#dialog-confirm" ).dialog({
+		resizable: false,
+		height:180,
+		width: 300,
+		modal: true,
+		autoOpen:false,
+		buttons: {
+		"Recalculer les suivis": function() {
+			$( this ).dialog( "close" );
+			window.location.href = theHREF;
+		},
+		"Annuler": function() {
+			  $( this ).dialog( "close" );
+		}
+		}
+	});
+	
+	$("a.confirmModal").click(function(e) {
+        e.preventDefault();
+        theHREF = $(this).attr("href");
+        $("#dialog-confirm").dialog("open");
+    });
+});
+</script>
 {% if app_list %}
     {% for app in app_list %}
         <div class="module">
@@ -57,7 +93,7 @@
             <li><a href="/promotions">Répartition par classe</a></li>
             <li><a href="/contents">Répartition par cours</a></li>
             <li><a href="/teachers">Répartition par enseignant</a></li>
-            <li><a href="/generate_supervision">Répartion des suivis</a></li>
+            <li><a class="confirmModal" href="/generate_supervision">Répartion des suivis</a></li>
             <li><a href="/global_supervision">Tableau général des suivis</a></li>
             <li><a href="/supervision">Suivis par classe</a></li>
             <li><a href="/remaind">Solde des cours à attribuer</a></li>
