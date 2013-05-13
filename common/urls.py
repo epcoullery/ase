@@ -19,7 +19,8 @@ urlpatterns = patterns('',
     url(r'^generate_supervision/$', views.supervision),
     url(r'^supervision/(?P<pk>.+)?', views.supervision_by_promotion),
     url(r'^global_supervision/$', views.global_supervision),
-    
+    url(r'^export_teachers/$', views.export_teachers),
+    url(r'^export_controls/$', views.export_controls),
     # Appel AJAX
     url(r'^course/(?P<pk_course>\d+)/(?P<pk_teacher>\d+)$', views.update_courses),
     url(r'^supervision_add/(?P<pk>\d+)', views.supervision_add),

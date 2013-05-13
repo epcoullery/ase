@@ -1,0 +1,19 @@
+KBI;Biloni;Katia
+GCH;Chabloz;Grégoire
+MDR;De Reynier;Marie-France
+NFI;Fiechter;Nathalie
+FFA;Frantzen;Françoise
+SGR;Grandet;Sylvana
+JHA;Haldimann;Julie
+NJH;Jaquet-Henry;Nicole
+YKO;Konow;Yasmina
+ALB;Lebbar;Abdessamad
+LLU;Luginbhul;Liliane
+MMA;Mangin;Maud
+CME;Meyer;Cédric
+MGO;Mireille;Gouin
+ENE;Neiva Torres;Eva
+CSG;Polier-Grau;Caroline
+JLR;Regnier;Jean-Luc
+XEN;X;ENF
+YHAN;Y;HAND

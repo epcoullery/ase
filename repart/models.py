@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 from __future__ import unicode_literals
+import math
 
 from django.db import models
 from django.db.models import Sum
@@ -7,6 +8,23 @@ from reportlab.platypus import BaseDocTemplate, SimpleDocTemplate
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 
+FULL_TIME_JOB = 2200.0
+FULL_TIME_JOB_PERCENT = FULL_TIME_JOB/100.0
+EDUC_FACTOR = 2
+EDUC_METTINGS = 24
+MAX_OTHER_ACTIVITIES = 250
+
+
+class Todo(models.Model):
+    rec_date = models.DateTimeField()
+    text = models.CharField(max_length=200, null=False, blank=False)
+    ok = models.BooleanField(default=False)
+    
+    def __unicode__(self):
+        if not self.ok:
+            return self.text
+         
+    
 # Create your models here.
 class Formation(models.Model):
     name = models.CharField(max_length=10)
@@ -89,54 +107,60 @@ class Teacher(models.Model):
         return self.last_name + " " + self.first_name
 
     def __total_teaching(self):
-        self.totTeaching =  AppliedStudiesPlan.objects.filter(teacher__id = self.id).aggregate(Sum('teacher_period'))
-        if self.totTeaching['teacher_period__sum'] is None:
-            return 0
+        self.totTeaching =  AppliedStudiesPlan.objects.filter(teacher__id = self.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+        if self.totTeaching is None:
+            return 0.0
         else:
-            return int(self.totTeaching['teacher_period__sum'])
+            return math.floor(self.totTeaching)
 
     def __total_mission(self):
-        self.totMission = AdminJob.objects.filter(teacher__id=self.id).aggregate(Sum('teacher_period'))
-        if self.totMission['teacher_period__sum'] is None:
-            return 0
+        self.totMission = AdminJob.objects.filter(teacher__id=self.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+        if self.totMission is None:
+            return 0.0
         else:
-            return int(self.totMission['teacher_period__sum'])
+            return math.floor(self.totMission)
 
     def __total_supervision(self):
-        self.totSupervision = Supervision.objects.filter(teacher__id=self.id).aggregate(Sum('teacher_period'))
-        if self.totSupervision['teacher_period__sum'] is None:
-            return 0
+        self.totSupervision = Supervision.objects.filter(teacher__id=self.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+        if self.totSupervision is None:
+            return 0.0
         else:
-            return int(self.totSupervision['teacher_period__sum'])
+            return math.floor(self.totSupervision)
 
-    def __total_others(self):
-        foo = self.total()
-        foo = foo + 15*foo/100. # Tâches diverses
-        foo = foo + 10*foo/100. # Formation continue/Actualisation des savoirs
-        return foo
-
+    
     def total(self):
-        tot_teaching = self.__total_teaching() * 2
-        tot_mission = self.__total_mission() + 24 # colloques pédagogiques
-        tot_supervision= self.__total_supervision()
+        tot_teaching = self.__total_teaching() * EDUC_FACTOR
+        if self.extern == True:
+            tot_mission = 0
+            self.activity_rate = 0.0
+        else:
+            tot_mission = self.__total_mission() + EDUC_METTINGS # colloques pédagogiques
+            
+        if self.able_to_supervision == False:
+            tot_supervision = 0
+        else:
+            tot_supervision= self.__total_supervision()    
         total = tot_teaching + tot_mission + tot_supervision
-        others = 0
-        others = others + 15*total/100. # Tâches divers
-        others = others + 10*total/100. # Actualisation des savoirs
-        others = int(others + 0.50) # Arrondi à l'unité supérieure
+ 
+        if self.extern == True:
+            others = 0
+        else:
+            #others = int(total/2200.0 * 250.0 + 0.5)
+            others = math.floor(total/FULL_TIME_JOB * MAX_OTHER_ACTIVITIES)
+        
         return {'teaching': tot_teaching,
                  'mission': tot_mission,
                  'supervision': tot_supervision,
                  'others': others,
                  'total': others + total,
-                 'gap': (others + total - int((self.activity_rate * 22.))),
-                 'ept': (others+total)/22.}
+                 'gap': (others + total - int((self.activity_rate * FULL_TIME_JOB_PERCENT))),
+                 'ept': (others+total)/FULL_TIME_JOB_PERCENT}
 
     def __ept(self):
-        return (self.total()['total']/22.)
+        return (self.total()['total']/FULL_TIME_JOB_PERCENT)
 
     def __gap(self):
-        return (self.total() - int((self.activity_rate * 22.)))
+        return (self.total() - int((self.activity_rate * FULL_TIME_JOB_PERCENT)))
 
 
 class TheoricStudiesPlan(models.Model):
@@ -214,19 +238,6 @@ class Supervision(models.Model):
 
     def __unicode__(self):
         return self.teacher.full_name() + " : " + self.promotion.name + " : " + str(self.students_number)
-
-    """
-    def generate(self):
-        Supervision.objects.all().delete()
-        teachers = Teacher.objects.all()
-        promotions = Promotion.objects.all()
-        for teacher in teachers:
-            for promotion in promotions:
-                s = Supervision()
-                s.teacher = teacher
-                s.promotion = promotion
-                s.save()
-    """
                 
     class Meta:
         ordering=['teacher__last_name', 'promotion__name']

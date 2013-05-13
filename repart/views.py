@@ -3,12 +3,13 @@ import json
 #import locale
 import math
 from datetime import date
-
+import csv, codecs, cStringIO
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.dateformat import format
+from django.core.servers.basehttp import FileWrapper
 from reportlab.platypus import Paragraph, Spacer, PageBreak, Table, TableStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -17,7 +18,7 @@ from reportlab.lib.styles import ParagraphStyle as PS
 from reportlab.lib.enums import TA_CENTER, TA_LEFT,TA_RIGHT,TA_JUSTIFY
 
 from models import (Promotion, AppliedStudiesPlan, TheoricStudiesPlan, Teacher,
-    Content, AdminJob, MyDocTemplate, Supervision)
+    Content, AdminJob, MyDocTemplate, Supervision, Todo)
 
 
 def teachers(request, pk):
@@ -109,18 +110,22 @@ def teachers_charges(request, pk):
         story.append(Paragraph(u'Charge d\'enseignement pour l\'année scolaire 2013-2014', style_bold))
         story.append(Spacer(1, 0.5*cm))
         total = teacher.total()
-        tab = [[u'Transmission des savoirs (coef. 2, liste des cours en annexe)', u'%d pér.' % (total['teaching'])]]
-        tab.append([u'Mandats particuliers', u'%d pér.' % total['mission']])
-        tab.append([u'    -%s ( %d pér.)' % (u'Colloques pédagogiques', 24),''])
-        for mission in missions:
-            libel = u'    -%s ( %d pér.)' % (mission.content.name, mission.teacher_period)
-            tab.append([libel, ''])
-        tot_super = Supervision.objects.filter(teacher_id=teacher.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
-        if tot_super is None:
-            tot_super = 0
-        tab.append([u'Suivis expérientiels (FE + MP)', u'%d pér.' % (tot_super)])
-        tab.append([u'Autres tâches', u'%d pér.' % (total['others'])])
-        tab.append([u'Total', u'%d pér.' % (total['total']), u'%.1f EPT' % (total['ept']/100)])
+        if teacher.extern == False:
+            tab = [[u'Transmission des savoirs (coef. 2, liste des cours en annexe)', u'%d pér.' % (total['teaching'])]]
+            tab.append([u'Mandats particuliers', u'%d pér.' % total['mission']])
+            tab.append([u'    -%s ( %d pér.)' % (u'Colloques pédagogiques', 24),''])
+            for mission in missions:
+                libel = u'    -%s ( %d pér.)' % (mission.content.name, mission.teacher_period)
+                tab.append([libel, ''])
+            tot_super = Supervision.objects.filter(teacher_id=teacher.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+            if tot_super is None:
+                tot_super = 0
+            tab.append([u'Suivis expérientiels (FE + MP)', u'%d pér.' % (tot_super)])
+            tab.append([u'Autres tâches', u'%d pér.' % (total['others'])])
+            tab.append([u'Total', u'%d pér.' % (total['total']), u'%.1f EPT' % (total['ept']/100)])
+        else:
+            tab = [[u'Transmission des savoirs (coef. 1 - !!!Externe!!!, liste des cours en annexe)', u'%d pér.' % (total['teaching']/2)]]    
+            tab.append([u'Total', u'%d pér.' % (total['total']/2), u'%.1f EPT' % (total['ept']/100/2)])
 
         t = Table(tab, repeatRows=1)
         t.setStyle(TableStyle([('LEADING',   (0,1), (-1,-1), 8),
@@ -304,7 +309,71 @@ def supervision_by_promotion(request, pk):
     
     return render(request, 'supervision_promotions.html', data)
 
+class UnicodeWriter:
+    """
+    A CSV writer which will write rows to CSV file 'f',
+    which is encoded in the given encoding.
+    """
+
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+        # Redirect output to a queue
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row):
+        self.writer.writerow([s.encode("utf-8") for s in row])
+        # Fetch UTF-8 output from the queue ...
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        # ... and reencode it into the target encoding
+        data = self.encoder.encode(data)
+        # write to the target stream
+        self.stream.write(data)
+        # empty queue
+        self.queue.truncate(0)
+
+    def writerows(self, rows):
+        for row in rows:
+            self.writerow(row)
+            
+            
+def export_teachers(request):
+
+    teachers = Teacher.objects.all()
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="export_teachers.csv"'
+
+    writer = UnicodeWriter(response)
+    writer.writerow(['Code', 'Nom', u'Prénom'])
     
+    for teacher in teachers:
+        writer.writerow([teacher.code, teacher.last_name, teacher.first_name])
+    
+    return response
+
+
+
+def export_controls(request):
+    """
+    Retourne le nombre de périodes prof et périodes élèves pour chaque classe
+    """
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="export_promotions.csv"'
+    writer = UnicodeWriter(response)
+    promotions = Promotion.objects.all()
+    
+    writer.writerow([u'Classe', u'Pér. ens.', u'Pér. élève'])
+    for promotion in promotions:
+        teacher_periods = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id).aggregate(Sum('teacher_period'))['teacher_period__sum']
+        student_periods = AppliedStudiesPlan.objects.filter(promotion_id=promotion.id).aggregate(Sum('student_period'))['student_period__sum']
+        writer.writerow([promotion.name, '%d' % teacher_periods, '%d' % student_periods])
+        
+    return response
+
+
+
 """    
 Appels AJAX  ************************************************************
 """
